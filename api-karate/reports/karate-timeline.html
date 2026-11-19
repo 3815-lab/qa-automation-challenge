@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Karate Timeline</title>
+    <style>
+      body, html { font-family: arial, sans-serif; font-size: 11pt; }
+      #visualization { box-sizing: border-box; width: 100%; height: 300px; }
+      .vis-item.failed { background-color: #F2928C; }
+      .page-heading { padding: 0.5em; margin-bottom: 0.5em; background-color: lightcyan; border: 1px solid gray; }
+    </style>
+    <script src="res/vis.min.js"></script>
+    <link href="res/vis.min.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div class="page-heading">
+      <a href="karate-summary.html">Summary</a>
+    </div>     
+    <div id="visualization"></div>
+    <script>
+var groups = [{"content":"pool-2-thread-1","id":1},{"content":"pool-2-thread-2","id":2},{"content":"pool-2-thread-3","id":3},{"content":"pool-2-thread-4","id":4}];
+var items = [{"id":1,"group":1,"content":"demoblaze/login/login[1:11]","start":1795065201345,"end":1795065202637,"title":"demoblaze/login/login[1:11] 00:13:21.345-00:13:22.637 Login con usuario y password correctos"},{"id":2,"group":2,"content":"demoblaze/login/login[2:22]","start":1795065201345,"end":1795065202558,"title":"demoblaze/login/login[2:22] 00:13:21.345-00:13:22.558 Login con password incorrecto"},{"id":3,"group":3,"content":"demoblaze/login/login[3:29]","start":1795065201345,"end":1795065202578,"title":"demoblaze/login/login[3:29] 00:13:21.345-00:13:22.578 Login con un usuario que no existe"},{"id":4,"group":4,"content":"demoblaze/login/login[4.1:47]","start":1795065201345,"end":1795065202549,"title":"demoblaze/login/login[4.1:47] 00:13:21.345-00:13:22.549 No hace login si falta el username"},{"id":5,"group":4,"content":"demoblaze/login/login[4.2:48]","start":1795065202553,"end":1795065202866,"title":"demoblaze/login/login[4.2:48] 00:13:22.553-00:13:22.866 No hace login si falta el password"},{"id":6,"group":2,"content":"demoblaze/signup/signup[1:9]","start":1795065202561,"end":1795065202914,"title":"demoblaze/signup/signup[1:9] 00:13:22.561-00:13:22.914 Crear un nuevo usuario"},{"id":7,"group":3,"content":"demoblaze/signup/signup[2:18]","start":1795065202581,"end":1795065203254,"title":"demoblaze/signup/signup[2:18] 00:13:22.581-00:13:23.254 Intentar crear un usuario ya existente"},{"id":8,"group":1,"content":"demoblaze/signup/signup[3.1:35]","start":1795065202640,"end":1795065202942,"title":"demoblaze/signup/signup[3.1:35] 00:13:22.640-00:13:22.942 No registra si falta el username"},{"id":9,"group":4,"content":"demoblaze/signup/signup[3.2:36]","start":1795065202869,"end":1795065203172,"title":"demoblaze/signup/signup[3.2:36] 00:13:22.869-00:13:23.172 No registra si falta el password"},{"id":10,"group":2,"content":"demoblaze/signup/signup[3.3:37]","start":1795065202918,"end":1795065203229,"title":"demoblaze/signup/signup[3.3:37] 00:13:22.918-00:13:23.229 No registra si falta todo el body"}];
+</script>
+    <script>
+      var container = document.getElementById('visualization');
+      var timeline = new vis.Timeline(container);
+      timeline.setOptions({groupOrder: 'content'});
+      timeline.setGroups(new vis.DataSet(groups));
+      timeline.setItems(new vis.DataSet(items));
+    </script>
+  </body>
+</html>

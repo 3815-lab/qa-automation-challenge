@@ -1,0 +1,99 @@
+CONCLUSIONES Y HALLAZGOS - API DEMOBLAZE (SIGNUP / LOGIN)
+=========================================================
+
+RESULTADO
+---------
+- 10 escenarios automatizados (5 de signup, 5 de login), todos pasan
+  (ver reports/karate-summary.html).
+- Los 4 casos del ejercicio se comportan de forma estable y repetible.
+
+
+ENTRADAS Y SALIDAS CAPTURADAS
+-----------------------------
+Ambos servicios: POST, Content-Type application/json
+Body: { "username": "<usuario>", "password": "<password en base64>" }
+
+  Caso                              | Status | Respuesta
+  ----------------------------------|--------|------------------------------------------------
+  Signup usuario nuevo              | 200    | ""
+  Signup usuario existente          | 200    | {"errorMessage":"This user already exist."}
+  Login credenciales correctas      | 200    | "Auth_token: <token en base64>"
+  Login password incorrecto         | 200    | {"errorMessage":"Wrong password."}
+  Login usuario inexistente         | 200    | {"errorMessage":"User does not exist."}
+  Signup sin username o password    | 200    | {"errorMessage":"Bad parameter, missing username or password"}
+  Login sin username o password     | 200    | {"errorMessage":"Bad parameter, missing username"}
+
+El detalle completo de cada request y response esta en el reporte html.
+
+
+HALLAZGOS
+---------
+1. La api siempre responde 200, incluso en los errores.
+   Usuario duplicado, password incorrecto o parametros faltantes devuelven 200
+   con un errorMessage en el body. Lo esperable seria 409 para el duplicado,
+   401 para credenciales invalidas y 400 para parametros faltantes. Esto obliga
+   a validar siempre el body, el status no sirve para saber si la operacion
+   salio bien.
+
+2. El signup exitoso no devuelve nada util.
+   Responde un string vacio (""), sin id de usuario ni mensaje de confirmacion.
+   Lo normal seria un 201 con algun dato del recurso creado.
+
+3. El formato de respuesta no es consistente.
+   A veces responde un string json ("" o "Auth_token: ...") y a veces un objeto
+   ({"errorMessage": ...}). Para el cliente es incomodo porque tiene que manejar
+   dos tipos distintos en el mismo servicio. En las pruebas hubo que parsear el
+   string a mano antes de validarlo.
+
+4. El token de login es predecible.
+   El Auth_token es un base64 que al decodificarlo da el nombre de usuario
+   seguido de un numero. No esta firmado ni es aleatorio, asi que en principio
+   se podria armar el token de otro usuario. Es el hallazgo mas delicado desde
+   el punto de vista de seguridad.
+
+5. El password viaja solo codificado en base64.
+   Base64 no es cifrado, cualquiera lo revierte. La proteccion real la da solo
+   el https. Ademas la api acepta cualquier valor como password, sin exigir
+   largo minimo ni complejidad.
+
+6. Mensajes de error inconsistentes y con errores de redaccion.
+   - "This user already exist." (deberia ser "exists").
+   - Si falta un parametro, signup dice "missing username or password" y login
+     dice "missing username" aunque lo que falte sea el password.
+
+7. El login revela si un usuario existe.
+   Devuelve "User does not exist." o "Wrong password." segun el caso, lo que
+   permite enumerar usuarios validos. Lo recomendable es un mensaje generico
+   para ambos casos.
+
+8. Username y password vacios provocan un error 500.
+   Mandar { "username": "", "password": "" } al login devuelve un
+   500 Internal Server Error en html, en vez de un error controlado. No se
+   automatizo como caso porque es un bug del servicio y dejaria la suite en
+   rojo; queda reportado aca.
+
+9. No hay forma de limpiar datos.
+   No existe un servicio para borrar usuarios, cada ejecucion deja usuarios
+   de prueba creados. Por eso los usuarios se generan con timestamp + random.
+
+
+CONCLUSIONES DE LA AUTOMATIZACION
+---------------------------------
+- Karate permite escribir los casos en Gherkin legible y trae incluidos el
+  cliente http, las aserciones de json, la ejecucion en paralelo y el reporte.
+- Los datos se generan en cada corrida (data-generator.js), las pruebas son
+  repetibles y no dependen de datos previos.
+- create-user.feature es reutilizable: login crea su propio usuario con
+  callonce, asi no depende de que signup corra antes y los features se pueden
+  ejecutar en paralelo o por separado con tags.
+- La url base y los timeouts estan en karate-config.js, sumar otro ambiente es
+  agregar una linea.
+- Se valida el body completo con match y no solo el status, que en esta api
+  es justamente lo que no aporta informacion.
+
+
+POSIBLES MEJORAS
+----------------
+- Integrar la suite a un pipeline de CI y publicar el reporte como artefacto.
+- Agregar pruebas de contrato si el equipo de backend publica un esquema.
+- Pruebas de carga basicas reutilizando los mismos features con karate-gatling.

@@ -1,0 +1,66 @@
+CONCLUSIONES Y HALLAZGOS - E2E SAUCEDEMO
+========================================
+
+RESULTADO
+---------
+- 7 tests automatizados en 3 specs, todos pasan (ver reports/reporte-e2e.html).
+- El flujo completo de compra (login -> 2 productos -> carrito -> formulario ->
+  confirmacion) funciona bien con standard_user y corre en unos 2 segundos.
+
+
+HALLAZGOS DEL SITIO
+-------------------
+1. El texto de confirmacion no coincide exacto con el enunciado.
+   El ejercicio pide "THANK YOU FOR YOUR ORDER" y la pagina muestra
+   "Thank you for your order!" (capitalizado y con signo de admiracion).
+   El test compara sin distinguir mayusculas para validar lo que pide el
+   enunciado sin fallar por un tema de formato.
+
+2. Las rutas internas responden 404 si se entra directo.
+   Al navegar directo a /inventory.html el servidor responde 404 aunque la app
+   carga igual (es una SPA en hosting estatico). No afecta al usuario, pero
+   obliga a usar failOnStatusCode: false en cy.visit para esas rutas.
+
+3. La sesion se maneja con una cookie simple.
+   El login solo deja una cookie "session-username" con el nombre del usuario.
+   Para un sitio demo esta bien, en una app real seria un hallazgo de seguridad.
+
+4. Los mensajes de validacion salen de a uno.
+   Si el formulario de compra va vacio solo avisa del primer campo que falta
+   (First Name), no de todos. No es un bug, pero es mejorable en usabilidad.
+
+5. El formulario no valida formato.
+   Solo revisa que los campos no esten vacios; el codigo postal acepta
+   cualquier texto.
+
+6. El sitio es muy amigable para automatizar.
+   Casi todos los elementos tienen atributo data-test, asi que los selectores
+   no dependen de clases css ni de la estructura del html.
+
+
+CONCLUSIONES DE LA AUTOMATIZACION
+---------------------------------
+- Page Object Model: cada pantalla tiene su clase con los selectores privados.
+  Si cambia un selector se arregla en un solo lugar y los tests no se tocan.
+- Las aserciones estan en los specs y no en los page objects, asi cada test
+  deja claro que valida.
+- Los datos (usuarios, productos, datos del comprador) viven en fixtures. El
+  test recorre la lista de productos, se puede comprar 2 o 5 sin cambiar codigo.
+- El total no esta quemado: se calcula como subtotal + el impuesto que muestra
+  la pagina, y las sumas se hacen en centavos para evitar errores de decimales.
+- cy.login usa cy.session para no repetir el login por UI en los tests donde
+  el login no es lo que se esta probando. El flujo principal si hace login por
+  UI porque es parte de lo que pide el ejercicio.
+- No hay esperas fijas (cy.wait con tiempo); todo se apoya en los reintentos
+  automaticos de Cypress, por eso la suite es rapida y estable.
+- Se dejo 1 reintento en modo headless para absorber algun problema puntual de
+  red, ya que la prueba depende de un sitio publico.
+
+
+POSIBLES MEJORAS
+----------------
+- Correr la suite en un pipeline de CI (GitHub Actions) en cada push.
+- Probar el flujo en mas navegadores (Chrome, Firefox, Edge).
+- Agregar los otros usuarios del sitio (problem_user, performance_glitch_user,
+  error_user) como pruebas de regresion visual y de rendimiento.
+- Cubrir quitar productos del carrito y el ordenamiento del catalogo.
