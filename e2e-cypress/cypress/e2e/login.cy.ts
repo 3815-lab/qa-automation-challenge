@@ -29,4 +29,32 @@ describe('Login', () => {
       .should('contain.text', 'Username and password do not match any user in this service');
     cy.url().should('not.include', '/inventory.html');
   });
+
+  const requiredFieldCases = [
+    { name: 'el username', username: '', password: users.standard.password, expectedError: 'Username is required' },
+    { name: 'el password', username: users.standard.username, password: '', expectedError: 'Password is required' },
+  ];
+
+  requiredFieldCases.forEach(({ name, username, password, expectedError }) => {
+    it(`no deja entrar si falta ${name}`, () => {
+      loginPage.login(username, password);
+
+      loginPage.errorMessage().should('contain.text', expectedError);
+      cy.url().should('not.include', '/inventory.html');
+    });
+  });
+});
+
+describe('Control de acceso sin sesion', () => {
+  ['/inventory.html', '/cart.html', '/checkout-step-one.html'].forEach((path) => {
+    it(`redirige al login al entrar directo a ${path}`, () => {
+      // la ruta directa responde 404 (hosting estatico) pero la app carga y hace la redireccion
+      cy.visit(path, { failOnStatusCode: false });
+
+      cy.location('pathname').should('eq', '/');
+      loginPage
+        .errorMessage()
+        .should('contain.text', `You can only access '${path}' when you are logged in.`);
+    });
+  });
 });

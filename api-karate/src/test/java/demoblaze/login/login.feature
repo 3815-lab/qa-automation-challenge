@@ -19,6 +19,19 @@ Feature: Login - autenticacion de usuarios en demoblaze
     * def token = body.replace('Auth_token: ', '')
     * print 'token generado:', token
 
+  # deja como evidencia que el token no es aleatorio ni esta firmado: es base64(username + numero).
+  # si algun dia la api pasa a un token seguro este escenario va a fallar, y ahi hay que retirarlo
+  @security
+  Scenario: El Auth_token es predecible, solo codifica el username
+    Given path 'login'
+    And request { username: '#(user.username)', password: '#(user.password)' }
+    When method post
+    Then status 200
+    * def token = JSON.parse(response).replace('Auth_token: ', '')
+    * def decoded = decodeBase64(token)
+    * print 'token decodificado:', decoded
+    And match decoded == '#regex ' + user.username + '\\d+'
+
   Scenario: Login con password incorrecto
     Given path 'login'
     And request { username: '#(user.username)', password: '#(user.wrongPassword)' }
@@ -46,3 +59,17 @@ Feature: Login - autenticacion de usuarios en demoblaze
       | caso        | body                             |
       | el username | { password: '#(user.password)' } |
       | el password | { username: '#(user.username)' } |
+
+  # BUG: con username vacio o null la api se cae con un 500 en html
+  @known-bug
+  Scenario Outline: Login con username <caso> deberia dar un error controlado
+    Given path 'login'
+    And request { username: <username>, password: '#(user.password)' }
+    When method post
+    Then assert responseStatus < 500
+    And match response == { errorMessage: '#string' }
+
+    Examples:
+      | caso  | username |
+      | vacio | ''       |
+      | null  | null     |

@@ -41,7 +41,11 @@ d) En Chrome en vez de Electron:
 
     npx cypress run --browser chrome
 
-e) Revisar tipos de TypeScript (opcional):
+e) Incluir los tests de bugs conocidos del sitio (se espera que fallen):
+
+    npm run cy:known-bugs
+
+f) Revisar tipos de TypeScript (opcional):
 
     npm run typecheck
 
@@ -65,9 +69,21 @@ cypress/e2e/purchase-flow.cy.ts  (el flujo que pide el ejercicio)
 
 cypress/e2e/login.cy.ts  (apoyo)
     - Login correcto, usuario bloqueado y password incorrecto
+    - Login sin username y sin password
+    - Control de acceso: entrar directo a una pagina interna sin sesion
+      redirige al login
 
 cypress/e2e/checkout-validation.cy.ts  (apoyo)
-    - El formulario no avanza si falta nombre, apellido o codigo postal
+    - El formulario no avanza si falta nombre, apellido o codigo postal,
+      ni si va totalmente vacio
+
+cypress/e2e/cart.cy.ts  (apoyo)
+    - Quitar un producto actualiza la lista y el contador del carrito
+    - [bug conocido] no deberia dejar iniciar el checkout con el carrito vacio
+
+Total: 15 tests. En la corrida normal pasan 14 y el del bug conocido aparece
+como "pending". Con npm run cy:known-bugs ese test se ejecuta y falla, que es
+lo esperado mientras el sitio no corrija el bug (ver conclusiones.txt).
 
 
 6. ESTRUCTURA
@@ -81,6 +97,7 @@ e2e-cypress/
     support/
       commands.ts          comandos custom: cy.getByTestId y cy.login
       utils.ts             helpers de precios
+      known-bug.ts         helper para los tests de bugs conocidos
       types.ts             tipos de los datos de prueba
   reports/                 reporte de evidencia
   readme.txt

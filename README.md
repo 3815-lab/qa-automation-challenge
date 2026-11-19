@@ -31,20 +31,30 @@ cd api-karate
 ./mvnw test        # en Windows: mvnw.cmd test
 ```
 
+Los tests de bugs conocidos afirman el comportamiento esperado, así que hoy fallan y quedan fuera de la corrida por defecto. Para ejecutarlos:
+
+```bash
+npm run cy:known-bugs                                  # en e2e-cypress
+./mvnw test "-Dkarate.options=--tags @known-bug"       # en api-karate
+```
+
 ## Qué se automatizó
 
-**E2E - SauceDemo** (7 tests)
+**E2E - SauceDemo** (15 tests: 14 pasan, 1 pendiente por bug conocido)
 
 - Flujo de compra completo: login, agregar dos productos, ver el carrito, llenar el formulario y finalizar hasta la confirmación de la orden.
-- Casos de apoyo: login con usuario bloqueado y password incorrecto, validaciones del formulario de compra.
+- Casos de apoyo: login negativo, control de acceso sin sesión, validaciones del formulario de compra y quitar productos del carrito.
+- Bug conocido documentado como test: el sitio permite comprar con el carrito vacío.
 
-**APIs - Demoblaze** (10 escenarios)
+**APIs - Demoblaze** (12 escenarios en la corrida por defecto + 8 de bugs conocidos)
 
 - Signup: usuario nuevo y usuario ya existente.
 - Login: credenciales correctas y password incorrecto.
-- Casos de apoyo: usuario inexistente y parámetros faltantes.
+- Casos de apoyo: usuario inexistente, parámetros faltantes, signup duplicado con otro password y token predecible.
+- Bugs conocidos (`@known-bug`): la API responde 500 con username vacío o null, y registra usuarios con password vacío, null o numérico.
 
 ## Reportes
 
 - E2E: [`e2e-cypress/reports/reporte-e2e.html`](e2e-cypress/reports/reporte-e2e.html)
 - APIs: [`api-karate/reports/karate-summary.html`](api-karate/reports/karate-summary.html)
+- APIs, bugs conocidos: [`api-karate/reports/known-bugs/karate-summary.html`](api-karate/reports/known-bugs/karate-summary.html)

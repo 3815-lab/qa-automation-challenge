@@ -23,6 +23,30 @@ Feature: Signup - registro de usuarios en demoblaze
     Then status 200
     And match response == { errorMessage: 'This user already exist.' }
 
+  Scenario: Un signup duplicado con otro password no pisa la credencial original
+    * def created = call read('classpath:demoblaze/helpers/create-user.feature')
+    * def user = created.user
+
+    Given path 'signup'
+    And request { username: '#(user.username)', password: '#(user.wrongPassword)' }
+    When method post
+    Then status 200
+    And match response == { errorMessage: 'This user already exist.' }
+
+    # el password original sigue sirviendo
+    Given path 'login'
+    And request { username: '#(user.username)', password: '#(user.password)' }
+    When method post
+    Then status 200
+    And match JSON.parse(response) == '#regex Auth_token: .+'
+
+    # y el del segundo intento no quedo registrado
+    Given path 'login'
+    And request { username: '#(user.username)', password: '#(user.wrongPassword)' }
+    When method post
+    Then status 200
+    And match response == { errorMessage: 'Wrong password.' }
+
   Scenario Outline: No registra si falta <caso>
     Given path 'signup'
     And request <body>
@@ -35,3 +59,33 @@ Feature: Signup - registro de usuarios en demoblaze
       | el username  | { password: '#(newUser.password)' }  |
       | el password  | { username: '#(newUser.username)' }  |
       | todo el body | {}                                   |
+
+  # BUG: con username vacio, null o de un tipo que no es texto la api se cae con un 500 en html
+  @known-bug
+  Scenario Outline: Signup con username <caso> deberia dar un error controlado
+    Given path 'signup'
+    And request { username: <username>, password: '#(newUser.password)' }
+    When method post
+    Then assert responseStatus < 500
+    And match response == { errorMessage: '#string' }
+
+    Examples:
+      | caso      | username   |
+      | vacio     | ''         |
+      | null      | null       |
+      | un objeto | { a: 1 }   |
+
+  # BUG: la api no valida el password, registra al usuario aunque venga vacio, null o como numero
+  @known-bug
+  Scenario Outline: Signup con password <caso> no deberia registrar al usuario
+    Given path 'signup'
+    And request { username: '#(newUser.username)', password: <password> }
+    When method post
+    Then assert responseStatus < 500
+    And match response == { errorMessage: '#string' }
+
+    Examples:
+      | caso      | password |
+      | vacio     | ''       |
+      | null      | null     |
+      | un numero | 12345    |

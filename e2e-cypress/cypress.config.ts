@@ -13,6 +13,10 @@ export default defineConfig({
     inlineAssets: true,
     saveAllAttempts: false,
   },
+  // --expose knownBugs=true corre tambien los tests de bugs conocidos del sitio (hoy fallan)
+  expose: {
+    knownBugs: false,
+  },
   e2e: {
     baseUrl: 'https://www.saucedemo.com',
     specPattern: 'cypress/e2e/**/*.cy.ts',

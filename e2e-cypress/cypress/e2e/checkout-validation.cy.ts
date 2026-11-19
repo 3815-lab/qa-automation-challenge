@@ -5,17 +5,37 @@ import { inventoryPage, cartPage, checkoutInfoPage } from '../pages';
 import type { CheckoutInfo } from '../support/types';
 
 interface ValidationCase {
-  missingField: keyof CheckoutInfo;
+  name: string;
+  info: CheckoutInfo;
   expectedError: string;
 }
 
 describe('Validaciones del formulario de compra', () => {
   const [product] = productsToBuy;
+  const emptyForm: CheckoutInfo = { firstName: '', lastName: '', postalCode: '' };
 
   const cases: ValidationCase[] = [
-    { missingField: 'firstName', expectedError: 'Error: First Name is required' },
-    { missingField: 'lastName', expectedError: 'Error: Last Name is required' },
-    { missingField: 'postalCode', expectedError: 'Error: Postal Code is required' },
+    {
+      name: 'falta el nombre',
+      info: { ...customer, firstName: '' },
+      expectedError: 'Error: First Name is required',
+    },
+    {
+      name: 'falta el apellido',
+      info: { ...customer, lastName: '' },
+      expectedError: 'Error: Last Name is required',
+    },
+    {
+      name: 'falta el codigo postal',
+      info: { ...customer, postalCode: '' },
+      expectedError: 'Error: Postal Code is required',
+    },
+    {
+      // con todo vacio solo se reporta el primer campo, no los tres
+      name: 'el formulario va vacio',
+      info: emptyForm,
+      expectedError: 'Error: First Name is required',
+    },
   ];
 
   beforeEach(() => {
@@ -25,9 +45,9 @@ describe('Validaciones del formulario de compra', () => {
     cartPage.checkout();
   });
 
-  cases.forEach(({ missingField, expectedError }) => {
-    it(`no avanza si falta el campo ${missingField}`, () => {
-      checkoutInfoPage.fillForm({ ...customer, [missingField]: '' }).continue();
+  cases.forEach(({ name, info, expectedError }) => {
+    it(`no avanza si ${name}`, () => {
+      checkoutInfoPage.fillForm(info).continue();
 
       checkoutInfoPage.errorMessage().should('have.text', expectedError);
       cy.url().should('include', '/checkout-step-one.html');

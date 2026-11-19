@@ -36,6 +36,10 @@ c) Solo los casos principales (smoke):
 
     ./mvnw test "-Dkarate.options=--tags @smoke"
 
+d) Bugs conocidos de la api (se espera que fallen, ver conclusiones.txt):
+
+    ./mvnw test "-Dkarate.options=--tags @known-bug"
+
 La primera ejecucion tarda mas porque descarga Maven y las dependencias.
 
 
@@ -47,6 +51,8 @@ La primera ejecucion tarda mas porque descarga Maven y las dependencias.
 - Log de la ejecucion:     target/karate.log
 - En la carpeta reports/ esta el reporte de la ultima corrida que hice, como
   evidencia. Abrir reports/karate-summary.html en el navegador.
+- En reports/known-bugs/ esta el reporte de la corrida de los @known-bug,
+  con los 8 escenarios en rojo y el response real de la api en cada uno.
 
 
 4. CASOS DE PRUEBA
@@ -65,6 +71,17 @@ Casos extra de apoyo:
     - Login con un usuario que no existe          -> errorMessage "User does not exist."
     - Signup sin username / sin password / vacio  -> errorMessage "Bad parameter, missing username or password"
     - Login sin username / sin password           -> errorMessage "Bad parameter, missing username"
+    - Signup duplicado con otro password          -> lo rechaza y el password original sigue sirviendo
+    - Auth_token decodificado (@security)         -> es el username seguido de un numero
+
+Total corrida por defecto: 12 escenarios, todos pasan.
+
+Bugs conocidos (@known-bug, fuera de la corrida por defecto, hoy fallan):
+    - Signup con username vacio / null / objeto   -> la api responde 500
+    - Login con username vacio / null             -> la api responde 500
+    - Signup con password vacio / null / numero   -> la api registra al usuario igual
+Estos 8 escenarios afirman el comportamiento esperado (error controlado), no
+el actual. El dia que el bug se corrija van a pasar.
 
 Entradas: en ambos servicios es un POST con body json
     { "username": "<usuario>", "password": "<password en base64>" }

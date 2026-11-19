@@ -11,9 +11,14 @@ export class LoginPage {
     return this;
   }
 
+  /** Los campos vacios se dejan sin tocar (cy.type no acepta string vacio) */
   login(username: string, password: string): this {
-    cy.getByTestId(this.selectors.username).clear().type(username);
-    cy.getByTestId(this.selectors.password).clear().type(password, { log: false });
+    if (username) {
+      cy.getByTestId(this.selectors.username).clear().type(username);
+    }
+    if (password) {
+      cy.getByTestId(this.selectors.password).clear().type(password, { log: false });
+    }
     cy.getByTestId(this.selectors.loginButton).click();
     return this;
   }

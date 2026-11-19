@@ -3,39 +3,67 @@ CONCLUSIONES Y HALLAZGOS - E2E SAUCEDEMO
 
 RESULTADO
 ---------
-- 7 tests automatizados en 3 specs, todos pasan (ver reports/reporte-e2e.html).
+- 15 tests automatizados en 4 specs: 14 pasan y 1 queda como pendiente porque
+  documenta un bug conocido del sitio (ver reports/reporte-e2e.html).
 - El flujo completo de compra (login -> 2 productos -> carrito -> formulario ->
   confirmacion) funciona bien con standard_user y corre en unos 2 segundos.
 
 
 HALLAZGOS DEL SITIO
 -------------------
-1. El texto de confirmacion no coincide exacto con el enunciado.
+Cada hallazgo indica el test que lo respalda.
+
+1. Se puede completar una compra con el carrito vacio. (BUG)
+   Sin agregar ningun producto el sitio deja entrar al checkout, llenar el
+   formulario y finalizar: muestra "Thank you for your order!" con un total de
+   $0.00. Es el hallazgo mas importante porque es un error de negocio, se
+   estarian generando ordenes sin productos.
+   Test: cart.cy.ts, "no deberia permitir iniciar el checkout con el carrito
+   vacio". Afirma el comportamiento esperado, asi que hoy falla; por eso queda
+   como pendiente en la corrida normal y se ejecuta con npm run cy:known-bugs.
+
+2. El texto de confirmacion no coincide exacto con el enunciado.
    El ejercicio pide "THANK YOU FOR YOUR ORDER" y la pagina muestra
    "Thank you for your order!" (capitalizado y con signo de admiracion).
    El test compara sin distinguir mayusculas para validar lo que pide el
    enunciado sin fallar por un tema de formato.
+   Test: purchase-flow.cy.ts.
 
-2. Las rutas internas responden 404 si se entra directo.
+3. Las rutas internas responden 404 si se entra directo.
    Al navegar directo a /inventory.html el servidor responde 404 aunque la app
    carga igual (es una SPA en hosting estatico). No afecta al usuario, pero
    obliga a usar failOnStatusCode: false en cy.visit para esas rutas.
+   Test: login.cy.ts, bloque "Control de acceso sin sesion" (sin ese flag los
+   tests fallarian por el 404).
 
-3. La sesion se maneja con una cookie simple.
+4. El control de acceso sin sesion funciona bien.
+   Entrar directo a /inventory.html, /cart.html o /checkout-step-one.html sin
+   haber iniciado sesion redirige al login con el mensaje "You can only
+   access '...' when you are logged in."
+   Test: login.cy.ts, bloque "Control de acceso sin sesion".
+
+5. La sesion se maneja con una cookie simple.
    El login solo deja una cookie "session-username" con el nombre del usuario.
    Para un sitio demo esta bien, en una app real seria un hallazgo de seguridad.
+   Respaldo: el comando cy.login valida la sesion revisando esa cookie. No
+   tiene un test propio porque probar que se puede falsificar la cookie ya es
+   una prueba de seguridad, fuera del alcance funcional de este ejercicio.
 
-4. Los mensajes de validacion salen de a uno.
+6. Los mensajes de validacion salen de a uno.
    Si el formulario de compra va vacio solo avisa del primer campo que falta
    (First Name), no de todos. No es un bug, pero es mejorable en usabilidad.
+   Test: checkout-validation.cy.ts, "no avanza si el formulario va vacio".
 
-5. El formulario no valida formato.
+7. El formulario no valida formato.
    Solo revisa que los campos no esten vacios; el codigo postal acepta
    cualquier texto.
+   Sin test: se comprobo a mano. No se automatizo porque no hay un requisito
+   que diga que formato deberia tener, un test aca seria inventar la regla.
 
-6. El sitio es muy amigable para automatizar.
+8. El sitio es muy amigable para automatizar.
    Casi todos los elementos tienen atributo data-test, asi que los selectores
    no dependen de clases css ni de la estructura del html.
+   Respaldo: todos los page objects usan solo selectores data-test.
 
 
 CONCLUSIONES DE LA AUTOMATIZACION
@@ -53,6 +81,9 @@ CONCLUSIONES DE LA AUTOMATIZACION
   UI porque es parte de lo que pide el ejercicio.
 - No hay esperas fijas (cy.wait con tiempo); todo se apoya en los reintentos
   automaticos de Cypress, por eso la suite es rapida y estable.
+- Los bugs conocidos se dejan como test y no solo como texto: afirman lo que
+  deberia pasar, quedan pendientes en la corrida normal para no dejar la suite
+  en rojo, y el dia que el bug se arregle el test pasa a verde y avisa.
 - Se dejo 1 reintento en modo headless para absorber algun problema puntual de
   red, ya que la prueba depende de un sitio publico.
 
@@ -63,4 +94,4 @@ POSIBLES MEJORAS
 - Probar el flujo en mas navegadores (Chrome, Firefox, Edge).
 - Agregar los otros usuarios del sitio (problem_user, performance_glitch_user,
   error_user) como pruebas de regresion visual y de rendimiento.
-- Cubrir quitar productos del carrito y el ordenamiento del catalogo.
+- Cubrir el ordenamiento del catalogo y el detalle de producto.

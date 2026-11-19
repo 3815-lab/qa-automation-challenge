@@ -3,8 +3,11 @@ CONCLUSIONES Y HALLAZGOS - API DEMOBLAZE (SIGNUP / LOGIN)
 
 RESULTADO
 ---------
-- 10 escenarios automatizados (5 de signup, 5 de login), todos pasan
-  (ver reports/karate-summary.html).
+- 12 escenarios en la corrida por defecto (6 de signup, 6 de login), todos
+  pasan (ver reports/karate-summary.html).
+- 8 escenarios mas con tag @known-bug que documentan bugs abiertos de la api.
+  Afirman el comportamiento esperado, asi que hoy fallan los 8, y por eso estan
+  fuera de la corrida por defecto (ver reports/known-bugs/karate-summary.html).
 - Los 4 casos del ejercicio se comportan de forma estable y repetible.
 
 
@@ -22,59 +25,91 @@ Body: { "username": "<usuario>", "password": "<password en base64>" }
   Login usuario inexistente         | 200    | {"errorMessage":"User does not exist."}
   Signup sin username o password    | 200    | {"errorMessage":"Bad parameter, missing username or password"}
   Login sin username o password     | 200    | {"errorMessage":"Bad parameter, missing username"}
+  Signup duplicado, otro password   | 200    | {"errorMessage":"This user already exist."}
+  Signup/Login, username "" o null  | 500    | pagina html "Internal Server Error"
+  Signup, password "", null o 12345 | 200    | ""  (registra al usuario)
 
 El detalle completo de cada request y response esta en el reporte html.
 
 
 HALLAZGOS
 ---------
+Cada hallazgo indica el escenario que lo respalda.
+
 1. La api siempre responde 200, incluso en los errores.
    Usuario duplicado, password incorrecto o parametros faltantes devuelven 200
    con un errorMessage en el body. Lo esperable seria 409 para el duplicado,
    401 para credenciales invalidas y 400 para parametros faltantes. Esto obliga
    a validar siempre el body, el status no sirve para saber si la operacion
    salio bien.
+   Test: todos los escenarios negativos validan "status 200" + errorMessage.
 
 2. El signup exitoso no devuelve nada util.
    Responde un string vacio (""), sin id de usuario ni mensaje de confirmacion.
    Lo normal seria un 201 con algun dato del recurso creado.
+   Test: signup.feature, "Crear un nuevo usuario".
 
 3. El formato de respuesta no es consistente.
    A veces responde un string json ("" o "Auth_token: ...") y a veces un objeto
    ({"errorMessage": ...}). Para el cliente es incomodo porque tiene que manejar
    dos tipos distintos en el mismo servicio. En las pruebas hubo que parsear el
    string a mano antes de validarlo.
+   Test: signup.feature y login.feature (JSON.parse en los casos exitosos,
+   match directo de objeto en los de error).
 
 4. El token de login es predecible.
    El Auth_token es un base64 que al decodificarlo da el nombre de usuario
    seguido de un numero. No esta firmado ni es aleatorio, asi que en principio
    se podria armar el token de otro usuario. Es el hallazgo mas delicado desde
    el punto de vista de seguridad.
+   Test: login.feature, "El Auth_token es predecible, solo codifica el
+   username" (tag @security). Decodifica el token y verifica que es el username
+   mas digitos. No se intento usar un token armado a mano contra otros
+   servicios porque eso ya seria una prueba de intrusion.
 
 5. El password viaja solo codificado en base64.
    Base64 no es cifrado, cualquiera lo revierte. La proteccion real la da solo
-   el https. Ademas la api acepta cualquier valor como password, sin exigir
-   largo minimo ni complejidad.
+   el https. Ademas la api no valida el password: registra al usuario aunque
+   venga vacio, null o como numero, y despues ese usuario puede hacer login
+   mandando el mismo valor.
+   Test: signup.feature, "Signup con password <caso> no deberia registrar al
+   usuario" (@known-bug, 3 casos).
 
 6. Mensajes de error inconsistentes y con errores de redaccion.
    - "This user already exist." (deberia ser "exists").
    - Si falta un parametro, signup dice "missing username or password" y login
      dice "missing username" aunque lo que falte sea el password.
+   Test: signup.feature "Intentar crear un usuario ya existente" y los
+   escenarios "No registra / No hace login si falta <caso>".
 
 7. El login revela si un usuario existe.
    Devuelve "User does not exist." o "Wrong password." segun el caso, lo que
    permite enumerar usuarios validos. Lo recomendable es un mensaje generico
    para ambos casos.
+   Test: login.feature, "Login con password incorrecto" y "Login con un
+   usuario que no existe" validan los dos mensajes distintos.
 
-8. Username y password vacios provocan un error 500.
-   Mandar { "username": "", "password": "" } al login devuelve un
-   500 Internal Server Error en html, en vez de un error controlado. No se
-   automatizo como caso porque es un bug del servicio y dejaria la suite en
-   rojo; queda reportado aca.
+8. Un username vacio, null o de otro tipo provoca un error 500. (BUG)
+   Tanto en signup como en login, mandar el username como "", null o un objeto
+   devuelve un 500 Internal Server Error en html en vez de un error controlado.
+   Un 500 por un dato de entrada invalido indica que el servicio no valida lo
+   que recibe.
+   Test: "Signup con username <caso> deberia dar un error controlado" (3
+   casos) y "Login con username <caso> deberia dar un error controlado" (2
+   casos), ambos @known-bug.
 
-9. No hay forma de limpiar datos.
+9. Un signup duplicado no pisa la credencial original.
+   Este se comporta bien: si se intenta registrar un usuario existente con
+   otro password, la api lo rechaza, el password original sigue funcionando y
+   el nuevo no. Era importante confirmarlo porque de fallar permitiria tomar
+   la cuenta de otro usuario.
+   Test: signup.feature, "Un signup duplicado con otro password no pisa la
+   credencial original".
+
+10. No hay forma de limpiar datos.
    No existe un servicio para borrar usuarios, cada ejecucion deja usuarios
    de prueba creados. Por eso los usuarios se generan con timestamp + random.
+   Sin test: es una limitacion de la api, no hay un servicio que probar.
 
 
 CONCLUSIONES DE LA AUTOMATIZACION
@@ -88,6 +123,10 @@ CONCLUSIONES DE LA AUTOMATIZACION
   ejecutar en paralelo o por separado con tags.
 - La url base y los timeouts estan en karate-config.js, sumar otro ambiente es
   agregar una linea.
+- Los bugs conocidos quedan como escenarios con tag @known-bug y no solo como
+  texto. Afirman lo que la api deberia hacer, se excluyen de la corrida por
+  defecto para no dejar la suite en rojo, y el dia que se corrijan pasan a
+  verde y avisan que hay que moverlos a la suite normal.
 - Se valida el body completo con match y no solo el status, que en esta api
   es justamente lo que no aporta informacion.
 
