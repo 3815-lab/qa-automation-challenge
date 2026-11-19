@@ -1,52 +1,67 @@
-import { loginPage } from '../pages/LoginPage';
-import { inventoryPage } from '../pages/InventoryPage';
-import { cartPage } from '../pages/CartPage';
-import { checkoutInfoPage } from '../pages/CheckoutInfoPage';
-import { checkoutOverviewPage } from '../pages/CheckoutOverviewPage';
-import { checkoutCompletePage } from '../pages/CheckoutCompletePage';
+import users from '../fixtures/users.json';
+import productsToBuy from '../fixtures/products.json';
+import customer from '../fixtures/checkout.json';
+import {
+  loginPage,
+  inventoryPage,
+  cartPage,
+  checkoutInfoPage,
+  checkoutOverviewPage,
+  checkoutCompletePage,
+} from '../pages';
+import type { Product } from '../support/types';
+import { formatPrice, parsePrice, sumAmounts, sumPrices, textsOf } from '../support/utils';
 
 describe('Flujo de compra', () => {
+  const products: Product[] = productsToBuy;
+  const productNames = products.map(({ name }) => name);
+  const productPrices = products.map(({ price }) => formatPrice(price));
+  const subtotal = sumPrices(products);
+
   it('compra dos productos hasta la confirmacion de la orden', () => {
-    // login
-    loginPage.visit();
-    cy.fixture('users').then(({ standard }) => {
-      loginPage.login(standard.username, standard.password);
-    });
+    cy.log('**Login**');
+    loginPage.visit().login(users.standard.username, users.standard.password);
     inventoryPage.title().should('have.text', 'Products');
 
-    cy.fixture('products').then((products) => {
-      // agregar los dos productos
-      products.forEach((product: { id: string }) => {
-        inventoryPage.addToCart(product.id);
-      });
-      inventoryPage.cartBadge().should('have.text', '2');
-
-      // ver el carrito
-      inventoryPage.openCart();
-      cy.url().should('include', '/cart.html');
-      cartPage.items().should('have.length', 2);
-      cartPage.itemNames().eq(0).should('have.text', products[0].name);
-      cartPage.itemNames().eq(1).should('have.text', products[1].name);
-
-      // formulario de compra
-      cartPage.checkout();
-      checkoutInfoPage.fillForm('Darwin', 'Velez', '170150').continue();
-
-      // resumen
-      cy.url().should('include', '/checkout-step-two.html');
-      checkoutOverviewPage.items().should('have.length', 2);
-      const subtotal = products[0].price + products[1].price;
-      checkoutOverviewPage.subtotal().should('contain.text', subtotal.toFixed(2));
-
-      // finalizar
-      checkoutOverviewPage.finish();
-      cy.url().should('include', '/checkout-complete.html');
-      checkoutCompletePage
-        .header()
-        .invoke('text')
-        .then((text) => {
-          expect(text.toUpperCase()).to.eq('THANK YOU FOR YOUR ORDER!');
-        });
+    cy.log('**Agregar productos al carrito**');
+    products.forEach(({ id }) => {
+      inventoryPage.addToCart(id);
+      inventoryPage.removeButton(id).should('be.visible');
     });
+    inventoryPage.cartBadge().should('have.text', String(products.length));
+
+    cy.log('**Visualizar el carrito**');
+    inventoryPage.openCart();
+    cy.url().should('include', '/cart.html');
+    cartPage.title().should('have.text', 'Your Cart');
+    cartPage.items().should('have.length', products.length);
+    cartPage.itemNames().then(textsOf).should('deep.equal', productNames);
+    cartPage.itemPrices().then(textsOf).should('deep.equal', productPrices);
+
+    cy.log('**Formulario de compra**');
+    cartPage.checkout();
+    cy.url().should('include', '/checkout-step-one.html');
+    checkoutInfoPage.fillForm(customer).continue();
+
+    cy.log('**Resumen de la orden**');
+    cy.url().should('include', '/checkout-step-two.html');
+    checkoutOverviewPage.itemNames().then(textsOf).should('deep.equal', productNames);
+    checkoutOverviewPage.subtotal().should('contain.text', formatPrice(subtotal));
+    // el total debe ser subtotal + impuesto, sin amarrar el test al % que use la pagina
+    checkoutOverviewPage
+      .tax()
+      .invoke('text')
+      .then((taxText) => {
+        const expectedTotal = sumAmounts(subtotal, parsePrice(taxText));
+        checkoutOverviewPage.total().should('contain.text', formatPrice(expectedTotal));
+      });
+
+    cy.log('**Finalizar compra**');
+    checkoutOverviewPage.finish();
+    cy.url().should('include', '/checkout-complete.html');
+    // el enunciado pide "THANK YOU FOR YOUR ORDER", la pagina lo muestra como "Thank you for your order!"
+    checkoutCompletePage.header().invoke('text').should('match', /^thank you for your order!?$/i);
+    checkoutCompletePage.backHomeButton().should('be.visible');
+    inventoryPage.cartBadge().should('not.exist');
   });
 });

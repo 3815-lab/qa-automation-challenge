@@ -1,18 +1,30 @@
 export class CartPage {
+  private readonly selectors = {
+    title: 'title',
+    item: 'inventory-item',
+    itemName: 'inventory-item-name',
+    itemPrice: 'inventory-item-price',
+    checkout: 'checkout',
+  };
+
   title() {
-    return cy.getByTestId('title');
+    return cy.getByTestId(this.selectors.title);
   }
 
   items() {
-    return cy.get('.cart_item');
+    return cy.getByTestId(this.selectors.item);
   }
 
   itemNames() {
-    return cy.get('.cart_item .inventory_item_name');
+    return cy.getByTestId(this.selectors.itemName);
+  }
+
+  itemPrices() {
+    return cy.getByTestId(this.selectors.itemPrice);
   }
 
   checkout(): this {
-    cy.get('#checkout').click();
+    cy.getByTestId(this.selectors.checkout).click();
     return this;
   }
 }

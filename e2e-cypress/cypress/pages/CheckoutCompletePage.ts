@@ -1,10 +1,15 @@
 export class CheckoutCompletePage {
+  private readonly selectors = {
+    header: 'complete-header',
+    backHome: 'back-to-products',
+  };
+
   header() {
-    return cy.getByTestId('complete-header');
+    return cy.getByTestId(this.selectors.header);
   }
 
   backHomeButton() {
-    return cy.getByTestId('back-to-products');
+    return cy.getByTestId(this.selectors.backHome);
   }
 }
 
