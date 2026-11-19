@@ -1,0 +1,19 @@
+# node / cypress
+node_modules/
+e2e-cypress/cypress/videos/
+e2e-cypress/cypress/screenshots/
+e2e-cypress/cypress/downloads/
+e2e-cypress/cypress/reports/
+
+# maven / karate
+api-karate/target/
+
+# ide y sistema
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# entregable
+*.zip
+*.rar

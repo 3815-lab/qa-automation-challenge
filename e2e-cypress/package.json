@@ -1,0 +1,16 @@
+{
+  "name": "e2e-cypress",
+  "version": "1.0.0",
+  "description": "Prueba E2E del flujo de compra de saucedemo con Cypress",
+  "private": true,
+  "scripts": {
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "test": "cypress run"
+  },
+  "devDependencies": {
+    "cypress": "^16.3.0",
+    "cypress-mochawesome-reporter": "^5.0.0",
+    "typescript": "^7.0.2"
+  }
+}
