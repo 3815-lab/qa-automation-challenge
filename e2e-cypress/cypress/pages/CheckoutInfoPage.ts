@@ -9,10 +9,15 @@ export class CheckoutInfoPage {
     error: 'error',
   };
 
-  fillForm({ firstName, lastName, postalCode }: CheckoutInfo): this {
-    cy.getByTestId(this.selectors.firstName).type(firstName);
-    cy.getByTestId(this.selectors.lastName).type(lastName);
-    cy.getByTestId(this.selectors.postalCode).type(postalCode);
+  /** Llena el formulario; los campos vacios se dejan sin tocar (cy.type no acepta string vacio) */
+  fillForm(info: CheckoutInfo): this {
+    const fields: (keyof CheckoutInfo)[] = ['firstName', 'lastName', 'postalCode'];
+
+    fields
+      .filter((field) => info[field] !== '')
+      .forEach((field) => {
+        cy.getByTestId(this.selectors[field]).type(info[field]);
+      });
     return this;
   }
 

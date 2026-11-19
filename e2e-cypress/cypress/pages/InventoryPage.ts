@@ -8,6 +8,13 @@ export class InventoryPage {
     remove: (productId: string) => `remove-${productId}`,
   };
 
+  /** Entra directo al catalogo, requiere una sesion ya iniciada (cy.login) */
+  visit(): this {
+    // saucedemo es una SPA en hosting estatico: la ruta directa responde 404 pero igual carga la app
+    cy.visit('/inventory.html', { failOnStatusCode: false });
+    return this;
+  }
+
   title() {
     return cy.getByTestId(this.selectors.title);
   }
